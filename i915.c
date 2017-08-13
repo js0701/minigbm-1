@@ -13,6 +13,7 @@
 #include <sys/mman.h>
 #include <xf86drm.h>
 
+#include "cros_gralloc/cros_gralloc_types.h"
 #include "drv_priv.h"
 #include "helpers.h"
 #include "util.h"
@@ -161,6 +162,8 @@ static int i915_add_combinations(struct driver *drv)
 	if (ret)
 		return ret;
 
+  drv_modify_combination(drv, DRM_FORMAT_NV12, &metadata, BO_USE_SCANOUT | BO_USE_RENDERING | BO_USE_TEXTURE);
+
 	metadata.tiling = I915_TILING_Y;
 	metadata.priority = 3;
 	metadata.modifier = I915_FORMAT_MOD_Y_TILED;
@@ -175,6 +178,8 @@ static int i915_add_combinations(struct driver *drv)
 				   texture_flags);
 	if (ret)
 		return ret;
+
+  drv_modify_combination(drv, HAL_PIXEL_FORMAT_NV12, &metadata, BO_USE_SCANOUT | BO_USE_RENDERING | BO_USE_TEXTURE);
 
 	items = drv_query_kms(drv, &num_items);
 	if (!items || !num_items)
