@@ -22,7 +22,7 @@ cros_gralloc_driver::cros_gralloc_driver() : drv_(nullptr)
 cros_gralloc_driver::~cros_gralloc_driver()
 {
 	buffers_.clear();
-	handles_.clear();
+	//handles_.clear();
 
 	if (drv_) {
 		drv_destroy(drv_);
@@ -165,7 +165,7 @@ int32_t cros_gralloc_driver::allocate(const struct cros_gralloc_buffer_descripto
 
         SCOPED_SPIN_LOCK(mutex_);
 	buffers_.emplace(id, buffer);
-	handles_.emplace(hnd, std::make_pair(buffer, 1));
+	//handles_.emplace(hnd, std::make_pair(buffer, 1));
 	*out_handle = &hnd->base;
 	return 0;
 }
@@ -181,13 +181,14 @@ int32_t cros_gralloc_driver::retain(buffer_handle_t handle)
 		return -EINVAL;
 	}
 
-	auto buffer = get_buffer(hnd);
-	if (buffer) {
-		handles_[hnd].second++;
-		buffer->increase_refcount();
-		return 0;
-	}
+	//auto buffer = get_buffer(hnd);
+	//if (buffer) {
+		//handles_[hnd].second++;
+	//	buffer->increase_refcount();
+	//	return 0;
+	//}
 
+        cros_gralloc_buffer * buffer = NULL;
 	if (drmPrimeFDToHandle(drv_get_fd(drv_), hnd->fds[0], &id)) {
 		cros_gralloc_error("drmPrimeFDToHandle failed.");
 		return -errno;
@@ -224,7 +225,7 @@ int32_t cros_gralloc_driver::retain(buffer_handle_t handle)
 		buffers_.emplace(id, buffer);
 	}
 
-	handles_.emplace(hnd, std::make_pair(buffer, 1));
+	//handles_.emplace(hnd, std::make_pair(buffer, 1));
 	return 0;
 }
 
@@ -238,8 +239,9 @@ int32_t cros_gralloc_driver::release(buffer_handle_t handle)
 		return -EINVAL;
 	}
 
-	auto buffer = get_buffer(hnd);
-	if (!buffer) {
+	//auto buffer = get_buffer(hnd);
+        cros_gralloc_buffer * buffer = NULL;
+	//if (!buffer) {
 		uint32_t id = -1;
 		if (drmPrimeFDToHandle(drv_get_fd(drv_), hnd->fds[0], &id)) {
 			cros_gralloc_error("drmPrimeFDToHandle failed.");
@@ -253,9 +255,9 @@ int32_t cros_gralloc_driver::release(buffer_handle_t handle)
 			cros_gralloc_error("Could not found reference");
 			return -EINVAL;
 		}
-	}
-	else if (!--handles_[hnd].second)
-		handles_.erase(hnd);
+	//}
+	//else if (!--handles_[hnd].second)
+	//	handles_.erase(hnd);
 
 	if (buffer->decrease_refcount() == 0) {
 		buffers_.erase(buffer->get_id());
@@ -279,11 +281,20 @@ int32_t cros_gralloc_driver::lock(buffer_handle_t handle, int32_t acquire_fence,
 		return -EINVAL;
 	}
 
-	auto buffer = get_buffer(hnd);
-	if (!buffer) {
-		cros_gralloc_error("Invalid Reference.");
-		return -EINVAL;
-	}
+                cros_gralloc_buffer * buffer = NULL;
+                uint32_t id = -1;
+                if (drmPrimeFDToHandle(drv_get_fd(drv_), hnd->fds[0], &id)) {
+                        cros_gralloc_error("drmPrimeFDToHandle failed.");
+                        return -errno;
+                }
+                if (buffers_.count(id)) {
+                        buffer = buffers_[id];
+                        buffer->increase_refcount();
+                }                
+	        else {
+		    cros_gralloc_error("Invalid Reference.");
+		    return -EINVAL;
+	        }
 
 	return buffer->lock(map_flags, addr);
 }
@@ -297,12 +308,21 @@ int32_t cros_gralloc_driver::unlock(buffer_handle_t handle, int32_t *release_fen
 		cros_gralloc_error("Invalid handle.");
 		return -EINVAL;
 	}
-
-	auto buffer = get_buffer(hnd);
-	if (!buffer) {
-		cros_gralloc_error("Invalid Reference.");
-		return -EINVAL;
-	}
+        
+                   cros_gralloc_buffer * buffer = NULL;
+                uint32_t id = -1;
+                if (drmPrimeFDToHandle(drv_get_fd(drv_), hnd->fds[0], &id)) {
+                        cros_gralloc_error("drmPrimeFDToHandle failed.");
+                        return -errno;
+                }
+                if (buffers_.count(id)) {
+                        buffer = buffers_[id];
+                        buffer->increase_refcount();
+                }
+                else {
+                    cros_gralloc_error("Invalid Reference.");
+                    return -EINVAL;
+                }
 
 	/*
 	 * From the ANativeWindow::dequeueBuffer documentation:
@@ -323,22 +343,32 @@ int32_t cros_gralloc_driver::get_backing_store(buffer_handle_t handle, uint64_t 
 		cros_gralloc_error("Invalid handle.");
 		return -EINVAL;
 	}
-
-	auto buffer = get_buffer(hnd);
-	if (!buffer) {
-		cros_gralloc_error("Invalid Reference.");
-		return -EINVAL;
-	}
+         cros_gralloc_buffer * buffer = NULL;
+         uint32_t id = -1;
+         if (drmPrimeFDToHandle(drv_get_fd(drv_), hnd->fds[0], &id)) {
+                        cros_gralloc_error("drmPrimeFDToHandle failed.");
+                        return -errno;
+         }
+         if (buffers_.count(id)) {
+                        buffer = buffers_[id];
+                        buffer->increase_refcount();
+         }
+         else {
+             cros_gralloc_error("Invalid Reference.");
+             return -EINVAL;
+         }
 
 	*out_store = static_cast<uint64_t>(buffer->get_id());
 	return 0;
 }
 
+/*
 cros_gralloc_buffer *cros_gralloc_driver::get_buffer(cros_gralloc_handle_t hnd)
 {
-	/* Assumes driver mutex is held. */
+	// Assumes driver mutex is held. 
 	if (handles_.count(hnd))
 		return handles_[hnd].first;
 
 	return nullptr;
 }
+*/

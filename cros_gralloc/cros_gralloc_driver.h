@@ -41,8 +41,8 @@ class cros_gralloc_driver
 	struct driver *drv_;
         SpinLock mutex_;
 	std::unordered_map<uint32_t, cros_gralloc_buffer *> buffers_;
-	std::unordered_map<cros_gralloc_handle_t, std::pair<cros_gralloc_buffer *, int32_t>>
-	    handles_;
+	//std::unordered_map<cros_gralloc_handle_t, std::pair<cros_gralloc_buffer *, int32_t>>
+	//    handles_;
 };
 
 #endif
